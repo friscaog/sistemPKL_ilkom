@@ -18,6 +18,8 @@ class Peserta_bimbingan extends CI_Controller {
 
 	public function index()
 	{
+		// print_r($this->session);
+		// return ;
 		// Data halaman.
 		$data['page'] = 'dosen';
 		$data['title'] = 'Peserta Bimbingan';

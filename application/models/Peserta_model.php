@@ -986,4 +986,19 @@ class Peserta_model extends CI_Model {
 		return TRUE;
 	}
 
+	public function laporan_pernyataan($id){
+		//ini dipakai di generate pdf bagian pendaftaran
+		$this->db->select('*');
+		$this->db->from('peserta');
+		$this->db->join('mahasiswa', 'peserta.mhs_id=mahasiswa.mhs_id', 'left');
+		$this->db->join('dosen', 'dosen.dos_id=peserta.pes_pembimbing', 'left');
+		$this->db->join('periode', 'peserta.per_id=periode.per_id', 'left');
+		$this->db->join('tempat_pkl', 'tempat_pkl.tem_id=peserta.tem_id', 'left');
+		$this->db->where('mahasiswa.mhs_id',$id);
+
+		// echo $id;
+
+		return $this->db->get()->result_array();
+	}
+
 }

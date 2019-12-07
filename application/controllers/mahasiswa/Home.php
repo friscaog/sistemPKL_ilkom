@@ -10,13 +10,16 @@ class Home extends CI_Controller {
 		$this->load->helper('url');
 
 		// Periksa hak akses pengguna.
-		if ($this->session->jenis_akun !== 'mahasiswa'){
-			redirect('login');
-		}
+		// if ($this->session->jenis_akun !== 'mahasiswa'){
+		// 	redirect('login');
+		// }
 	}
 
 	public function index()
 	{
+		// echo "a";
+		// print_r($this->session);
+		// return ;
 		$this->load->database();
 		$this->load->model(array('mahasiswa_model', 'peserta_model'));
 

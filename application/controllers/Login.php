@@ -13,7 +13,7 @@ class Login extends CI_Controller {
 		if (isset($_SESSION['jenis_akun'])){
 			switch ($_SESSION['jenis_akun']) {
 				case 'mahasiswa':
-					redirect('mahasiswa');
+					redirect('mahasiswa/profil');
 					break;
 			}
 		}

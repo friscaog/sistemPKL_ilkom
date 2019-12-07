@@ -57,6 +57,7 @@ class Profil extends CI_Controller {
 				$this->mahasiswa_model->edit(
 					$this->session->mahasiswa_id, 
 					$this->input->post('nim'), 
+					$this->input->post('semester'), 
 					$this->input->post('nama'), 
 					$this->input->post('telepon'), 
 					$this->input->post('alamat'));
@@ -75,9 +76,35 @@ class Profil extends CI_Controller {
 		$data['page'] = 'profil';
 		$data['title'] = 'Profil';
 		$data['profil'] = $this->mahasiswa_model->get_data($this->session->email);
+		$data['periode'] = $this->mahasiswa_model->get_periode();
+		$data['tempat'] = $this->mahasiswa_model->get_tempat_pkl();
+		$data['dos_pem'] = $this->mahasiswa_model->get_dos_pem();
+		$data['status'] = $this->mahasiswa_model->get_status();		
+
+		//cek apakah mahasiswa sudah terdaftar
+		if($data['status'] > 0)
+			$data['data'] = $this->mahasiswa_model->get_data_peserta();
+
 		$this->load->view('templates/header', $data);
 		$this->load->view('mahasiswa/profil', $data);
 		$this->load->view('templates/footer', $data);
 	}
+
+	public function input_profil_pendaftaran(){
+    	$this->load->helper('form');
+		$this->load->model('Peserta_model');
+
+		$tambah = $this->Peserta_model->add(
+			$this->session->mahasiswa_id,
+			$this->input->post('periode_id'),
+			$this->input->post('tempat_id'),
+			$this->input->post('dosen_id')
+		);
+
+		if(isset($tambah)){
+			redirect('mahasiswa/pendaftaran');
+		}
+    }
+
 
 }

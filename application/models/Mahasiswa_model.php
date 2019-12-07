@@ -24,8 +24,15 @@ class Mahasiswa_model extends CI_Model {
 
 	public function get_data($email)
 	{
-		$result = $this->db->get_where(self::TABLE_NAME, array('mhs_email_cs' => $email));
-		return $result->row_array();
+		// $result = $this->db->get_where(self::TABLE_NAME, array('mhs_email_cs' => $email));
+		// return $result->row_array();
+
+		$this->db->select('*');
+		$this->db->from('mahasiswa');
+		$this->db->join('dosen', 'mahasiswa.mhs_dos_pa=dosen.dos_id', 'left');
+		$this->db->where('mhs_email_cs', $email);
+		
+		return $this->db->get()->row_array();
 	}
 
 	public function add($email_cs, $nim, $nama, $telepon, $alamat)
@@ -45,10 +52,11 @@ class Mahasiswa_model extends CI_Model {
 		return $this->db->insert_id();
 	}
 
-	public function edit($id, $nim, $nama, $telepon, $alamat)
+	public function edit($id, $nim, $semester, $nama, $telepon, $alamat)
 	{
 		$data = array(
 			'mhs_nim' => $nim,
+			'mhs_smt' => $semester,
 			'mhs_nama' => $nama,
 			'mhs_telepon' => $telepon,
 			'mhs_alamat' => $alamat);
@@ -70,6 +78,39 @@ class Mahasiswa_model extends CI_Model {
 		}
 		
 		return TRUE;
+	}
+
+	public function get_periode(){
+		$query = $this->db->query('SELECT * FROM periode WHERE per_aktif=1');
+        return $query->result();
+	}
+
+	public function get_tempat_pkl(){
+		$query = $this->db->query('SELECT * from tempat_pkl');
+ 		return $query->result();
+	}
+
+	public function get_dos_pem(){
+		$query = $this->db->query('SELECT * from dosen');
+ 		return $query->result();
+	}
+
+	public function get_status(){
+		//cek apakah sudah terdaftar di tabel peserta atau belum
+		$query = $this->db->query('SELECT * from peserta WHERE mhs_id = '.$this->session->mahasiswa_id.'');
+		return count($query->result());
+	}
+
+	public function get_data_peserta(){
+		$query = $this->db->query('
+			SELECT * from peserta
+			LEFT JOIN periode USING(per_id)
+			LEFT JOIN tempat_pkl USING(tem_id)
+			LEFT JOIN dosen ON pes_pembimbing = dos_id
+			WHERE mhs_id = '.$this->session->mahasiswa_id.'
+			');
+
+ 		return $query->result();
 	}
 
 }

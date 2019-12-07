@@ -1,6 +1,65 @@
 <?php
 defined('BASEPATH') OR exit('No direct script access allowed');
 
+// Include the main TCPDF library.
+require_once(APPPATH.'third_party'.DIRECTORY_SEPARATOR.'tcpdf'.DIRECTORY_SEPARATOR.'tcpdf.php');
+
+// Extend the TCPDF class to create custom Header and Footer
+class MYPDF extends TCPDF {
+
+	//Page header
+    public function Header() {
+        // Logo
+        $image_file = K_PATH_IMAGES.'logo_unud.jpg';
+        // Image($file, $x='', $y='', $w=0, $h=0, $type='', $link='', $align='', $resize=false, $dpi=300, $palign='', $ismask=false, $imgmask=false, $border=0, $fitbox=false, $hidden=false, $fitonpage=false)
+        $this->Image($image_file, 20, 10, 30, 30, 'JPG', '', 'T', false, 300, '', false, false, 0, false, false, false);
+        
+        // Set font
+        $this->SetFont('times', 'B', 10);
+        
+        // Title
+        $table = "
+        <style>
+        	table{
+        		font-size: 12px;
+        		text-align:center;
+        	}
+        </style>
+        <table>
+        <tr>
+        	<td>KEMENTERIAN RISET, TEKNOLOGI DAN PENDIDIKAN TINGGI</td>
+        </tr>
+        <tr>
+        	<td>UNIVERSITAS UDAYANA</td>
+        </tr>
+        <tr>
+        	<td>FAKULTAS MIPA JURUSAN ILMU KOMPUTER</td>
+        </tr>
+        <tr>
+        	<td>PROGRAM STUDI TEKNIK INFORMATIKA</td>
+        </tr>
+        <tr>
+        	<td></td>
+        </tr>
+        <tr>
+        	<td><b>KOMISI PRAKTEK KERJA LAPANGAN</b></td>
+        </tr>
+		<tr>
+        	<td>Sekretariat : Jurusan Ilmu Komputer FMIPA UNUD, Gedung BF Kampus Bukit Jimbaran</td>
+        </tr>
+        <tr>
+        	<td>Telp. (0361) 701805, Email: pkl@cs.unud.ac.id</td>
+        </tr>
+        </table>
+        ";
+        $this->writeHTML($table);
+
+        //membuat garis horizontal 
+        $this->writeHTML("<hr>", true, false, false, false, '');
+    }
+
+}
+
 class Pendaftaran extends CI_Controller {
 
 	public function __construct()
@@ -25,10 +84,17 @@ class Pendaftaran extends CI_Controller {
 
 	public function index()
 	{
+		$this->load->helper('url');
 		$this->load->helper(array('form'));
 		$this->load->model(array('periode_model', 'tempat_model', 'dosen_model', 'mahasiswa_model', 'peserta_model'));
 		$this->load->library(array('form_validation', 'upload'));
 		$this->load->language('cs_pkl_error');
+
+		//cek apakah sudah terdaftar di tabel peserta atau belum
+		if($this->mahasiswa_model->get_status() == 0){
+			$this->session->set_flashdata('msg','Isi periode, institusi tempat PKL, dan dosen pembimbing');
+			return redirect('mahasiswa/profil');
+		}
 
 		// Data state form.
 		$data['form_state'] = '';
@@ -141,23 +207,23 @@ class Pendaftaran extends CI_Controller {
     private function _add_data($mahasiswa_id, &$out_form_state, &$out_submit_errors)
     {
     	// Rule validasi form.
-		$this->form_validation->set_rules('periode', 'Periode', 'required', 
-			array('required' => 'Anda harus memilih %s yang akan diikuti')
-			);
-		$this->form_validation->set_rules('tempat', 'Institusi Tempat PKL', 'required',
-			array('required' => 'Anda harus memilih %s')
-			);
-		$this->form_validation->set_rules('pembimbing', 'Dosen Pembimbing', 'required',
-			array('required' => 'Anda harus memilih %s')
-			);
+		// $this->form_validation->set_rules('periode', 'Periode', 'required', 
+		// 	array('required' => 'Anda harus memilih %s yang akan diikuti')
+		// 	);
+		// $this->form_validation->set_rules('tempat', 'Institusi Tempat PKL', 'required',
+		// 	array('required' => 'Anda harus memilih %s')
+		// 	);
+		// $this->form_validation->set_rules('pembimbing', 'Dosen Pembimbing', 'required',
+		// 	array('required' => 'Anda harus memilih %s')
+		// 	);
 
 		// Validasi form.
-		if ($this->form_validation->run() == FALSE)
-		{
-			// Menentukan apakah form dalam kondisi submit error atau dalam kondisi tidak disubmit.
-			$out_form_state = validation_errors() ? 'error' : '';
-		} 
-		else
+		// if ($this->form_validation->run() == FALSE)
+		// {
+		// 	// Menentukan apakah form dalam kondisi submit error atau dalam kondisi tidak disubmit.
+		// 	$out_form_state = validation_errors() ? 'error' : '';
+		// } 
+		// else
 		{	
 			// Proses upload file.	
 			$uploaded_files = array();
@@ -435,7 +501,385 @@ class Pendaftaran extends CI_Controller {
     		$out_form_state = 'success';	
         }
 
+    }
+
+
+    public function pernyataan(){
+    	$this->load->model('Peserta_model');
+    	$data = $this->Peserta_model->laporan_pernyataan($this->session->mahasiswa_id);
+
+    	// create new PDF document
+		$pdf = new MYPDF(PDF_PAGE_ORIENTATION, PDF_UNIT, PDF_PAGE_FORMAT, true, 'UTF-8', false);
+
+		// set document information
+		$pdf->SetCreator('CS PKL');
+		$pdf->SetAuthor('Jurusan Ilmu Komputer Universitas Udayana');
+		$pdf->SetTitle('Surat Pernyataan Memenuhi Syarat');
+		$pdf->SetSubject('Surat Pernyataan Memenuhi Syarat');
+		$pdf->SetKeywords('Surat, Pernyataan, Syarat, PKL');
+
+		// set default header data
+		$pdf->SetHeaderData(PDF_HEADER_LOGO, PDF_HEADER_LOGO_WIDTH, PDF_HEADER_TITLE, PDF_HEADER_STRING);
+
+		// set header and footer fonts
+		$pdf->setHeaderFont(Array(PDF_FONT_NAME_MAIN, '', PDF_FONT_SIZE_MAIN));
+		$pdf->setFooterFont(Array(PDF_FONT_NAME_DATA, '', PDF_FONT_SIZE_DATA));
+
+		// remove default header/footer
+		$pdf->setPrintFooter(false);
+
+		// set default monospaced font
+		$pdf->SetDefaultMonospacedFont(PDF_FONT_MONOSPACED);
+
+		//SetMargins($left,$top,$right = -1,$keepmargins = false)
+		$pdf->SetMargins(20, 20, 20, true);
+		$pdf->SetHeaderMargin(PDF_MARGIN_HEADER);
+		$pdf->SetFooterMargin(PDF_MARGIN_FOOTER);
+
+		// set auto page breaks
+		$pdf->SetAutoPageBreak(TRUE, PDF_MARGIN_BOTTOM);
+
+		// set image scale factor
+		$pdf->setImageScale(PDF_IMAGE_SCALE_RATIO);
+
+		// set some language-dependent strings (optional)
+		if (@file_exists(dirname(__FILE__).'/lang/eng.php')) {
+		    require_once(dirname(__FILE__).'/lang/eng.php');
+		    $pdf->setLanguageArray($l);
+		}
+
+		// ---------------------------------------------------------
+
+		// set font
+		$pdf->SetFont('times', '', 12);
+
+		// add a page
+		$pdf->AddPage();
+
+		//mengubah tanggal ke bahasa indonesia
+		$bulan = array (
+			1 =>   'Januari',
+			'Februari',
+			'Maret',
+			'April',
+			'Mei',
+			'Juni',
+			'Juli',
+			'Agustus',
+			'September',
+			'Oktober',
+			'November',
+			'Desember'
+		);
+		$tanggal = date('d-m-Y');
+		$pecahkan = explode('-', $tanggal);
+		$date =  $pecahkan[0] . ' ' . $bulan[ (int)$pecahkan[1] ] . ' ' . $pecahkan[2];
+
+		$html = '<br><br><br><br><br>		
+		<h4 style="text-align: center;">FORM PERNYATAAN</h4>
+		<i>Saya yang bertanda tangan dibawah ini:</i><br>
+		<table border="0" style="width:800px">
+			<tr>
+				<td style="width:50px"></td>
+				<td>Nama Mahasiwa</td>
+				<td style="width:20px">:</td>
+				<td>'.$data[0]['mhs_nama'].'</td>
+			</tr>
+			<tr>
+				<td></td>
+				<td>NIM</td>
+				<td style="width:20px">:</td>
+				<td>'.$data[0]['mhs_nim'].'</td>
+			</tr>
+			<tr>
+				<td></td>
+				<td>Program Studi</td>
+				<td style="width:20px">:</td>
+				<td>Teknik Informatika</td>
+			</tr>
+			<tr>
+				<td></td>
+				<td>Jurusan</td>
+				<td style="width:20px">:</td>
+				<td>Ilmu Komputer</td>
+			</tr>
+			<tr>
+				<td></td>
+				<td>Semester</td>
+				<td style="width:20px">:</td>
+				<td>'.$data[0]['mhs_smt'].' &nbsp; Tahun Ajaran: '.$data[0]['per_tahun'].'</td>
+			</tr>
+			<br><br><br>
+			<i style="text-align: justify">Dengan ini menyatakan bahwa telah memenuhi persyaratan untuk mengikuti Praktek Kerja Lapangan Jurusan Ilmu Komputer FMIPA Universitas Udayana Periode '.$data[0]['per_nama'].' pada Semester '.$data[0]['per_semester'].' '.$data[0]['per_tahun'].' dengan melampirkan fotokopi transkrip terakhir.</i>
+		<br><br><br><br>
+			<tr>
+				<td style="width:50px"></td>
+				<td colspan="2" style="width:40%">
+					Mengetahui			
+				</td>
+				<td colspan="2" style="width:50%">
+					Bukit Jimbaran, '.$date.'
+				</td>
+			</tr>
+
+			<tr>
+				<td style="width:50px"></td>
+				<td colspan="2" style="width:40%">
+					Dosen Pembiming Akademik
+				</td>
+				<td colspan="2" style="width:50%">			
+					Pemohon,
+				</td>					
+			</tr>
+		<br><br><br><br>
+			<tr>
+				<td style="width:50px"></td>
+				<td colspan="2">
+					('.$data[0]['dos_nama'].')		
+				</td>
+				<td colspan="2">
+					('.$data[0]['mhs_nama'].')		
+				</td>
+			</tr>
+
+			<tr>
+				<td style="width:50px"></td>
+				<td colspan="2">		
+					NIP. '.$data[0]['dos_nip'].'
+				</td>
+				<td colspan="2">		
+					NIM. '.$data[0]['mhs_nim'].'
+				</td>
+			</tr>
+		</table>
+		';		
+
+		// Tampilkan konten
+		$pdf->writeHTML($html, true, false, true, false, '');
+
+		//Close and output PDF document
+		$pdf->Output('Form Penyataan.pdf', 'I');
+    }
+
+    public function permohonan(){
+    	//ambil data dari database
+    	$this->load->model('Peserta_model');
+    	$data = $this->Peserta_model->laporan_pernyataan($this->session->mahasiswa_id);
+
+    	// create new PDF document
+		$pdf = new MYPDF(PDF_PAGE_ORIENTATION, PDF_UNIT, PDF_PAGE_FORMAT, true, 'UTF-8', false);
+
+		// set document information
+		$pdf->SetCreator('CS PKL');
+		$pdf->SetAuthor('Jurusan Ilmu Komputer Universitas Udayana');
+		$pdf->SetTitle('Surat Permohonan PKL');
+		$pdf->SetSubject('Surat Permohonan PKL');
+		$pdf->SetKeywords('Surat, Permohonan, PKL');
+
+		// set default header data
+		$pdf->SetHeaderData(PDF_HEADER_LOGO, PDF_HEADER_LOGO_WIDTH, PDF_HEADER_TITLE, PDF_HEADER_STRING);
+
+		// set header and footer fonts
+		$pdf->setHeaderFont(Array(PDF_FONT_NAME_MAIN, '', PDF_FONT_SIZE_MAIN));
+		$pdf->setFooterFont(Array(PDF_FONT_NAME_DATA, '', PDF_FONT_SIZE_DATA));
+
+		// remove default header/footer
+		$pdf->setPrintFooter(false);
+
+		// set default monospaced font
+		$pdf->SetDefaultMonospacedFont(PDF_FONT_MONOSPACED);
+
+		// set margins
+		//SetMargins($left,$top,$right = -1,$keepmargins = false)
+		$pdf->SetMargins(20, 20, 20, true);
+		$pdf->SetHeaderMargin(PDF_MARGIN_HEADER);
+		$pdf->SetFooterMargin(PDF_MARGIN_FOOTER);
+
+		// set auto page breaks
+		$pdf->SetAutoPageBreak(TRUE, PDF_MARGIN_BOTTOM);
+
+		// set image scale factor
+		$pdf->setImageScale(PDF_IMAGE_SCALE_RATIO);
+
+		// set some language-dependent strings (optional)
+		if (@file_exists(dirname(__FILE__).'/lang/eng.php')) {
+		    require_once(dirname(__FILE__).'/lang/eng.php');
+		    $pdf->setLanguageArray($l);
+		}
+
+		// ---------------------------------------------------------
+
+		// set font
+		$pdf->SetFont('times', '', 12);
+
+		// add a page
+		$pdf->AddPage();
+
+		$html = '<br><br><br><br><br>		
+		<h4 style="text-align: center;">FORM PERMOHONAN PRAKTEK KERJA LAPANGAN</h4>
+		<i>Saya yang bertanda tangan dibawah ini:</i><br>
+		<table border="0" style="width:800px">
+			<tr>
+				<td style="width:50px"></td>
+				<td style="width:250px">Nama Mahasiwa</td>
+				<td style="width:20px">:</td>
+				<td>'.$data[0]['mhs_nama'].'</td>
+			</tr>
+			<tr>
+				<td></td>
+				<td>NIM</td>
+				<td style="width:20px">:</td>
+				<td>'.$data[0]['mhs_nim'].'</td>
+			</tr>
+			<tr>
+				<td></td>
+				<td>Program Studi</td>
+				<td style="width:20px">:</td>
+				<td>Teknik Informatika</td>
+			</tr>
+			<tr>
+				<td></td>
+				<td>Jurusan</td>
+				<td style="width:20px">:</td>
+				<td>Ilmu Komputer</td>
+			</tr>
+			<tr>
+				<td></td>
+				<td>Semester</td>
+				<td style="width:20px">:</td>
+				<td>'.$data[0]['mhs_smt'].' &nbsp; Tahun Ajaran: '.$data[0]['per_tahun'].'</td>
+			</tr>
+		</table>
+		';		
+
+		// Tampilkan konten
+		$pdf->writeHTML($html, true, false, true, false, '');
+
+		$html = '<i>Memohon untuk melakukan Praktek Kerja Lapangan pada:</i><br>
+		<table border="0" style="width:800px">
+			<tr>
+				<td style="width:50px"></td>
+				<td style="width:250px">Nama Instansi/Perusahaan</td>
+				<td style="width:20px">:</td>
+				<td>'.$data[0]['tem_nama'].'</td>
+			</tr>
+			<tr>
+				<td></td>
+				<td>Alamat</td>
+				<td style="width:20px">:</td>
+				<td>'.$data[0]['tem_alamat'].'</td>
+			</tr>
+			<tr>
+				<td></td>
+				<td>Nomor Telepon</td>
+				<td style="width:20px">:</td>
+				<td>'.$data[0]['tem_telepon'].'</td>
+			</tr>
+		</table>
+		';
+
+		// output the HTML content
+		$pdf->writeHTML($html, true, false, true, false, '');
+
+		$html = '<i>Dengan perincian sebagai berikut:</i><br>
+		<table border="0" style="width:800px">
+			<tr>
+				<td style="width:50px"></td>
+				<td style="width:250px">Judul Praktek Kerja (Jika telah ada)</td>
+				<td style="width:20px">:</td>
+				<td style="width:280px"></td>
+			</tr>
+			<tr>
+				<td></td>
+				<td>Lama Praktek Kerja</td>
+				<td style="width:20px">:</td>
+				<td>(2) bulan</td>
+			</tr>
+			<tr>
+				<td></td>
+				<td>Mulai Tanggal</td>
+				<td style="width:20px">:</td>
+				<td>'.$data[0]['per_tgl_mulai'].', Selesai tanggal: '.$data[0]['per_tgl_selesai'].'</td>
+			</tr>
+		</table>
+		';
 		
+		// output the HTML content
+		$pdf->writeHTML($html, true, false, true, false, '');
+
+		$bulan = array (
+			1 =>   'Januari',
+			'Februari',
+			'Maret',
+			'April',
+			'Mei',
+			'Juni',
+			'Juli',
+			'Agustus',
+			'September',
+			'Oktober',
+			'November',
+			'Desember'
+		);
+		$tanggal = date('d-m-Y');
+		$pecahkan = explode('-', $tanggal);
+		$date =  $pecahkan[0] . ' ' . $bulan[ (int)$pecahkan[1] ] . ' ' . $pecahkan[2];
+
+
+		$html = '<i>Dan menyatakan bersedia:</i>
+		<ol>
+			<li>Menaati semua pedoman Praktek Kerja Lapangan yang telah ditetapkan oleh Program Studi dan peraturan Perusahaan/Instansi tempat pelaksanaan Praktek Kerja Lapangan.</li>
+			<li>Tidak akan melakukan hal-hal yang dapat merugikan pihak lain serta mencemarkan nama baik diri sendiri, keluarga, pihak Program Studi serta Perusahaan/Institusi tempat melakukan Praktek Kerja Lapangan.</li>
+			<li>Tidak akan menuntut atau meminta ganti rugi kepada pihak Program Studi dan Perusahaan/Institusi apabila terjadi hal-hal yang tidak diinginkan saat Praktek kerja (kehilangan, kecelakaan, dsb.) yang disebabkan oleh kecerobohan saya sendiri.</li>
+		</ol>
+		<table border="0" style="width:800px">
+		<br><br><br><br>
+			<tr>
+				<td style="width:50px"></td>
+				<td style="width:40%">
+					Mengetahui			
+				</td>
+				<td style="width:50%">
+					Bukit Jimbaran, '.$date.'
+				</td>
+			</tr>
+
+			<tr>
+				<td style="width:50px"></td>
+				<td style="width:40%">
+					Dosen Pembiming Akademik
+				</td>
+				<td style="width:50%">			
+					Pemohon,
+				</td>					
+			</tr>
+		<br><br><br>
+			<tr>
+				<td style="width:50px"></td>
+				<td>
+					('.$data[0]['dos_nama'].')		
+				</td>
+				<td>
+					('.$data[0]['mhs_nama'].')		
+				</td>
+			</tr>
+
+			<tr>
+				<td style="width:50px"></td>
+				<td>		
+					NIP. '.$data[0]['dos_nip'].'
+				</td>
+				<td>		
+					NIM. '.$data[0]['mhs_nim'].'
+				</td>
+			</tr>
+		</table>
+		';
+		// output the HTML content
+		$pdf->writeHTML($html, true, false, true, false, '');
+
+		//Close and output PDF document
+		$pdf->Output('Form Permohonan PKL.pdf', 'I');
     }
 
 }

@@ -62,11 +62,13 @@ foreach ($dosen_list as $item) {
   $pembimbing_options .= "<div class=\"item\" data-value=\"{$item['dos_id']}\">{$status_kapasitas} {$item['dos_nama']}</div>\n";
 }
 
-?><body class="mahasiswa-pendaftaran">
+?>
+<body class="mahasiswa-pendaftaran">
 
 <?php $this->load->view('templates/menu'); ?>
 
 <?php $this->load->view('mahasiswa/menu_steps'); ?>
+
 
   <!-- Main content -->
   <div class="ui basic main vertical segment">
@@ -95,7 +97,7 @@ foreach ($dosen_list as $item) {
             <?php endforeach; endif; ?>
           </ul>
         </div>
-        <div class="required field <?php echo form_error('periode')?'error':'';?> ">
+<!--         <div class="required field <?php echo form_error('periode')?'error':'';?> ">
           <label>Periode</label>
           <select name="periode" class="ui dropdown periode <?php echo ($form_type==='edit')?'disabled':'';?>">
             <option value="">Periode</option>
@@ -118,6 +120,23 @@ foreach ($dosen_list as $item) {
           </div>
           <?php endif;?>
         </div>
+        <div class="required field <?php echo form_error('pembimbing')?'error':''; ?> ">
+          <label>Dosen Pembimbing</label>
+          <div class="ui search selection dropdown pembimbing <?php echo ($form_type==='edit')?'disabled':'';?>">
+            <input type="hidden" name="pembimbing" value="<?php echo $pembimbing_value;?>">
+            <i class="dropdown icon"></i>
+            <div class="default text">Dosen pembimbing</div>
+            <div class="menu">
+              <?php echo $pembimbing_options; ?>
+            </div>            
+          </div>
+          <?php if($form_type!=='edit'): ?>
+          <div class="ui list hint">
+            <div class="item">Daftar dosen pembimbing disertai status kapasitas mahasiswa bimbingan <span class="periode-hint"></span></div>
+            <div class="item">Komisi PKL dapat mengubah pilihan dosen pembimbing dengan pertimbangan tertentu, terutama untuk dosen pembimbing yang kapasitasnya penuh</div>
+          </div>
+          <?php endif;?>
+        </div> -->
         <div class="required field <?php echo (isset($submit_errors['transkrip']) || form_error('transkrip'))?'error':''; ?>">
           <label>Transkrip Nilai</label>
           <!-- List file peserta-->
@@ -138,6 +157,8 @@ foreach ($dosen_list as $item) {
         </div>
         <div class="required field <?php echo (isset($submit_errors['surat_pernyataan_memenuhi_syarat']) || form_error('surat_pernyataan_memenuhi_syarat'))?'error':''; ?>">
           <label>Surat Pernyataan Memenuhi Syarat</label>
+          <!-- button untuk geerate pdf -->
+          <a class="ui orange button popup-trigger" data-content="Download Surat Pernyataan" href="Pendaftaran/pernyataan" target="_blank"><i class="download icon"></i>Download Surat Pernyataan</a>
           <!-- List file peserta-->
           <div class="ui tiny list ">
           <?php foreach($peserta_data_surat_pernyataan_memenuhi_syarat as $index => $surat_pernyataan_memenuhi_syarat): ?>
@@ -156,6 +177,8 @@ foreach ($dosen_list as $item) {
         </div>
         <div class="required field <?php echo (isset($submit_errors['surat_permohonan']) || form_error('surat_permohonan'))?'error':''; ?>">
           <label>Surat Permohonan PKL</label>
+          <!-- button untuk geerate pdf -->
+          <a class="ui orange button popup-trigger" data-content="Download Surat Permohonan" href="Pendaftaran/permohonan" target="_blank"><i class="download icon"></i>Download Surat Permohonan</a>
           <!-- List file peserta-->
           <div class="ui tiny list ">
           <?php foreach($peserta_data_surat_permohonan as $index => $surat_permohonan): ?>
@@ -188,23 +211,7 @@ foreach ($dosen_list as $item) {
             <div class="item">Peserta dapat melakukan upload ulang file</div>
           </div>
         </div>
-        <div class="required field <?php echo form_error('pembimbing')?'error':''; ?> ">
-          <label>Dosen Pembimbing</label>
-          <div class="ui search selection dropdown pembimbing <?php echo ($form_type==='edit')?'disabled':'';?>">
-            <input type="hidden" name="pembimbing" value="<?php echo $pembimbing_value;?>">
-            <i class="dropdown icon"></i>
-            <div class="default text">Dosen pembimbing</div>
-            <div class="menu">
-              <?php echo $pembimbing_options; ?>
-            </div>            
-          </div>
-          <?php if($form_type!=='edit'): ?>
-          <div class="ui list hint">
-            <div class="item">Daftar dosen pembimbing disertai status kapasitas mahasiswa bimbingan <span class="periode-hint"></span></div>
-            <div class="item">Komisi PKL dapat mengubah pilihan dosen pembimbing dengan pertimbangan tertentu, terutama untuk dosen pembimbing yang kapasitasnya penuh</div>
-          </div>
-          <?php endif;?>
-        </div>
+        
         <button class="ui primary button" name="submit" value="submit" type="submit">Submit</button>
       </form>
     </div>
